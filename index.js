@@ -5,10 +5,15 @@ var express = require('express');
 var fs = require('fs');
 var Twit = require('twit');
 var url  = require('url');
-var request = require('request');
 var async = require('async');
 const googleTrends = require('google-trends-api');
 var util = require('util');
+var cons = require('consolidate'); 
+var path = require('path');
+var bodyParser = require('body-parser');
+var request = require('request');
+// var request = require('postman-request');
+
 
 
 flock.appId = config.appId;
@@ -19,8 +24,11 @@ var app = express();
 var T = new Twit(config_twitter);
 
 
-
-
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.engine('html', cons.swig)
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'html');
 // Listen for events on /events, and verify event tokens using the token verifier.
 app.use(flock.events.tokenVerifier);
 app.post('/events', flock.events.listener);
@@ -88,26 +96,53 @@ app.get('/trending', function(req, res) {
 
 app.get('/grammar', function(req, res) {
 
-    var params = {
-            // Request parameters
-            "text": textToCheck,
-            "mode": "Proof",
+    var text = req.query.text;
+    if(text != undefined || text != null) {
+         var options = { 
+            method: 'GET',
+            url: 'https://api.cognitive.microsoft.com/bing/v5.0/spellcheck/',
+            qs: { text: text, mode: 'proof' },
+            headers: { 
+                'ocp-apim-subscription-key': '6c0e679d884f4d11b35174fbd9e007d1' 
+            } 
         };
 
-    request('url', function(err, res, body) {});
+        request(options, function (error, response, body) {
+            if (error) throw new Error(error);
+            console.log(body);
+            res.render("grammar", {text: text, body: body});
+            return ;
+        });
+    } else {
+        res.render("grammar", {});
+    }
+    
+    
+
+
+    // var params = {
+    //         // Request parameters
+    //         "text": textToCheck,
+    //         "mode": "Proof",
+    //     };
+
+    // request('url', function(err, res, body) {});
  
-    request({
-    url: "https://api.cognitive.microsoft.com/bing/v5.0/spellcheck/?" + $.param(params),
-            beforeSend: function(xhrObj){
-                // Request headers
-                xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key","6c0e679d884f4d11b35174fbd9e007d1");
-            },
-            type: "GET",
-            // Request body
-            data: "{body}",
-    }, function(err, res, body) {
+    // request({
+    // url: "https://api.cognitive.microsoft.com/bing/v5.0/spellcheck/?" + $.param(params),
+    //         beforeSend: function(xhrObj){
+    //             // Request headers
+    //             xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key","6c0e679d884f4d11b35174fbd9e007d1");
+    //         },
+    //         type: "GET",
+    //         // Request body
+    //         data: "{body}",
+    // }, function(err, res, body) {
   
-    });
+    // });
+});
+
+app.post('/grammar', function(req, res) {
 });
 
 // Read tokens from a local file, if possible.
