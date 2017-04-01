@@ -5,8 +5,15 @@ var express = require('express');
 var fs = require('fs');
 var Twit = require('twit');
 var url  = require('url');
-var request = require('request');
 var async = require('async');
+const googleTrends = require('google-trends-api');
+var util = require('util');
+var cons = require('consolidate'); 
+var path = require('path');
+var bodyParser = require('body-parser');
+var request = require('request');
+// var request = require('postman-request');
+
 
 
 flock.appId = config.appId;
@@ -17,8 +24,11 @@ var app = express();
 var T = new Twit(config_twitter);
 
 
-
-
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.engine('html', cons.swig)
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'html');
 // Listen for events on /events, and verify event tokens using the token verifier.
 app.use(flock.events.tokenVerifier);
 app.post('/events', flock.events.listener);
@@ -83,7 +93,60 @@ app.get('/trending', function(req, res) {
     
 });
 
+app.get('googletrends', function(req,res) {
+    
+});
 
+app.get('/grammar', function(req, res) {
+
+    var text = req.query.text;
+    if(text != undefined || text != null) {
+         var options = { 
+            method: 'GET',
+            url: 'https://api.cognitive.microsoft.com/bing/v5.0/spellcheck/',
+            qs: { text: text, mode: 'proof' },
+            headers: { 
+                'ocp-apim-subscription-key': '6c0e679d884f4d11b35174fbd9e007d1' 
+            } 
+        };
+
+        request(options, function (error, response, body) {
+            if (error) throw new Error(error);
+            console.log(body);
+            res.render("grammar", {text: text, body: body});
+            return ;
+        });
+    } else {
+        res.render("grammar", {});
+    }
+    
+    
+
+
+    // var params = {
+    //         // Request parameters
+    //         "text": textToCheck,
+    //         "mode": "Proof",
+    //     };
+
+    // request('url', function(err, res, body) {});
+ 
+    // request({
+    // url: "https://api.cognitive.microsoft.com/bing/v5.0/spellcheck/?" + $.param(params),
+    //         beforeSend: function(xhrObj){
+    //             // Request headers
+    //             xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key","6c0e679d884f4d11b35174fbd9e007d1");
+    //         },
+    //         type: "GET",
+    //         // Request body
+    //         data: "{body}",
+    // }, function(err, res, body) {
+  
+    // });
+});
+
+app.post('/grammar', function(req, res) {
+});
 
 // Read tokens from a local file, if possible.
 var tokens;
@@ -120,7 +183,7 @@ flock.events.on('client.slashCommand', function (event, callback) {
     var hint1 = textArray[0];
     textArray[0] = "";
     textArray.splice(0, 1);
-    var commandText = textArray.join(" ");
+    var commandText = textArray.join("");
 
     if(hint1 == "t") {
         T.get('trends/place', { 
@@ -148,8 +211,6 @@ flock.events.on('client.slashCommand', function (event, callback) {
                 names_twit += '<action id="act1" type="openWidget" url="'+url+'" desktopType="sidebar" mobileType="modal">'+tweets[i].name+'</action>'; 
             }
 
-             
-``
             flock.callMethod('chat.sendMessage', tokens[event.userId], {
                 to: chat,
                 text: "Trending Tweets"
@@ -193,6 +254,58 @@ flock.events.on('client.slashCommand', function (event, callback) {
             "text": "Fetching tweets!"
         });
 
+    } else if (hint1 == "g") {
+        
+        googleTrends.interestOverTime({keyword: textArray})
+        .then((res) => {
+          console.log('this is res', res);
+          var url = config.baseUrl + '/googletrends?text=commandText';
+          flock.callMethod('chat.sendMessage', tokens[event.userId], {
+                to: chat,
+                text: "Trends"
+                ,attachments: 
+                [
+                    {
+                        "title":"Trends",
+                        "description":"",
+                        "views": {
+                            // "html": { 
+                            //     "inline": "<html><head></head><body></body></html>" 
+                            // }
+                            // // ,
+                            "flockml": '<flockml>'+'<action id="act2" type="openWidget" url="'+url+'" desktopType="sidebar" mobileType="modal">'+'View Graph'+'</action>'+'</flockml>'
+                        }
+                        // ,"buttons": [{
+                        //     "name": "View",
+                        //     "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
+                        //     "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": "<action url>" },
+                        //     "id": "viewButton"
+                        // }, {
+                        //     "name": "Help",
+                        //     "icon": "https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-help-circled-128.png",
+                        //     "action": { "type": "openWidget", "desktopType": "sidebar", "mobileType": "modal", "url": "<action url>" },
+                        //     "id": "helpButton"
+                        // }]
+                    }
+                ]
+            }, function (error, response) {
+                if(!error) {
+                    console.log(response);
+                } else {
+                    console.log('error while sending chat sendMessage');
+                }
+            });
+        })
+        .catch((err) => {
+          console.log('got the error', err);
+        })
+
+
+
+        callback(null, {
+            "text": "Setting a reminder for " + time + " milliseconds!"
+        });
+
     } else {
         setTimeout(function() {
             flock.callMethod('chat.sendMessage', tokens[event.userId], {
@@ -214,9 +327,6 @@ flock.events.on('client.slashCommand', function (event, callback) {
 
     
     
-});
-
-flock.callMethod('roster.listContacts', "996f4684-30b6-4f48-8e64-5d60aa6c872f", {
 });
 
 
@@ -295,41 +405,6 @@ process.on('exit', function () {
     fs.writeFileSync('./tokens.json', JSON.stringify(tokens));
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // flock.events.on('client.slashCommand', function (event, callback) {
 //     // handle slash command event here
 
@@ -344,4 +419,90 @@ process.on('exit', function () {
 //     if (!error) {
 //         console.log(response);
 //     }
+// });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/******************** Interest over time **************************/
+
+// googleTrends.interestOverTime({keyword: 'Valentines Day'})
+// .then((res) => {
+//   console.log('this is res', res);
+// })
+// .catch((err) => {
+//   console.log('got the error', err);
+//   console.log('error message', err.message);
+//   console.log('request body',  err.requestBody);
+// });
+
+// googleTrends.interestOverTime({keyword: 'Valentines Day', startTime: new Date(Date.now() - (4 * 60 * 60 * 1000))}, function(err, results) {
+//   if (err) console.log('oh no error!', err);
+//   else console.log(results);
+// });
+
+
+/******* Interest over time - Comparing multiple keywords *********/
+// googleTrends.interestOverTime({keyword: ['Valentines Day', 'Christmas Day']})
+// .then((res) => {
+//   console.log('this is res', res);
+// })
+// .catch((err) => {
+//   console.log('got the error', err);
+// })
+
+
+/******************** Interest by region **************************/
+
+
+// googleTrends.interestByRegion({keyword: 'Donald Trump', startTime: new Date('2017-02-01'), endTime: new Date('2017-02-06'), resolution: 'CITY'})
+// .then((res) => {
+//   console.log(res);
+// })
+// .catch((err) => {
+//   console.log(err);
+// })
+
+// googleTrends.interestByRegion({keyword: 'Donald Trump', startTime: new Date('2017-02-01'), endTime: new Date('2017-02-06'), geo: 'US-CA'})
+// .then((res) => {
+//   console.log(res);
+// })
+// .catch((err) => {
+//   console.log(err);
+// })
+
+
+/******************** Related queries **************************/
+
+// googleTrends.relatedQueries({keyword: 'Westminster Dog Show'})
+// .then((res) => {
+//   console.log(res);
+// })
+// .catch((err) => {
+//   console.log(err);
+// })
+
+/******************** Related topics **************************/
+
+// googleTrends.relatedTopics({keyword: 'Chipotle', startTime: new Date('2015-01-01'), endTime: new Date('2017-02-10')})
+// .then((res) => {
+//   console.log(res);
+// })
+// .catch((err) => {
+//   console.log(err);
 // });
