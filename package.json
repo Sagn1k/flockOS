@@ -12,6 +12,7 @@
     "ajax-request": "^1.2.1",
     "async": "^2.2.0",
     "body-parser": "^1.17.1",
+    "chart.js": "^2.5.0",
     "consolidate": "^0.14.5",
     "express": "^4.15.2",
     "flockos": "0.0.6",

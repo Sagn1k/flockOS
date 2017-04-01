@@ -93,8 +93,21 @@ app.get('/trending', function(req, res) {
     
 });
 
-app.get('googletrends', function(req,res) {
-    
+app.get('/googletrends', function(req,res) {
+    var text = req.query.text;
+    var commands = text.split(",");
+    // commands.forEach(function(command) {
+    //     console.log(command);
+    // });
+    // console.log(commands);
+    googleTrends.interestOverTime({keyword: commands})
+    .then((response) => {
+    //   console.log('this is res', response);
+      res.render("charttrends", {'response' : response});
+    })
+    .catch((err) => {
+      console.log('got the error', err);
+    })
 });
 
 app.get('/grammar', function(req, res) {
@@ -145,8 +158,6 @@ app.get('/grammar', function(req, res) {
     // });
 });
 
-app.post('/grammar', function(req, res) {
-});
 
 // Read tokens from a local file, if possible.
 var tokens;
@@ -183,7 +194,7 @@ flock.events.on('client.slashCommand', function (event, callback) {
     var hint1 = textArray[0];
     textArray[0] = "";
     textArray.splice(0, 1);
-    var commandText = textArray.join("");
+    var commandText = textArray.join(" ");
 
     if(hint1 == "t") {
         T.get('trends/place', { 
@@ -256,10 +267,10 @@ flock.events.on('client.slashCommand', function (event, callback) {
 
     } else if (hint1 == "g") {
         
-        googleTrends.interestOverTime({keyword: textArray})
-        .then((res) => {
-          console.log('this is res', res);
-          var url = config.baseUrl + '/googletrends?text=commandText';
+        // googleTrends.interestOverTime({keyword: ['a']})
+        // .then((res) => {
+        //   console.log('this is res', res);
+          var url = config.baseUrl + '/googletrends?text='+encodeURI(commandText);
           flock.callMethod('chat.sendMessage', tokens[event.userId], {
                 to: chat,
                 text: "Trends"
@@ -295,10 +306,10 @@ flock.events.on('client.slashCommand', function (event, callback) {
                     console.log('error while sending chat sendMessage');
                 }
             });
-        })
-        .catch((err) => {
-          console.log('got the error', err);
-        })
+        // })
+        // .catch((err) => {
+        //   console.log('got the error', err);
+        // })
 
 
 

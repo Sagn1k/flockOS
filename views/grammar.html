@@ -40,7 +40,7 @@
             var inner = "";
             console.log(bodyElem);
             for(var i=0;i < bodyElem.flaggedTokens.length; i++) {
-                <p> <font color  = "RED"> inner += bodyElem.flaggedTokens[i].token </font></p> + " -> " +<p><font color = "green"</font></p> bodyElem.flaggedTokens[i].suggestions[0].suggestion + "<br>";
+                 inner += '<p> <font color="RED">'+bodyElem.flaggedTokens[i].token +'</font> => <font color = "green">'+ bodyElem.flaggedTokens[i].suggestions[0].suggestion + '</font></p><br>';
                 
             }
             document.getElementById('corrections').innerHTML = inner;
