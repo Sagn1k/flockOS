@@ -46,24 +46,39 @@ app.get('/trending', function(req, res) {
     var htmltobesend="";
     T.get('search/tweets', params, function (err, data, response) {
         var tweets = data.statuses;
-        for (var i = 0; i < tweets.length; i++) {
-            var urltobechecked = 'https://twitter.com/'+tweets[i].user.screen_name+'/status/'+ tweets[i].id_str;
-            console.log(urltobechecked);
-            T.get('statuses/oembed', {
-                url: urltobechecked
-            }, function(err, data, response) {
-                if(err) {
-                    console.warn(err);
-                } else {
-                    console.log(data.html);
-                    htmltobesend += data.html;
-                    res.send(htmltobesend);
+        // console.log(tweets);
+        var asyncArray =[];
+        tweets.forEach(function(tweet) {
+            asyncArray.push(
+                function(callback) {
+                    console.log(tweet);
+                    var urltobechecked = 'https://twitter.com/'+tweet.user.screen_name+'/status/'+ tweet.id_str;
+                    console.log(urltobechecked);
+                    T.get('statuses/oembed', {
+                        url: urltobechecked
+                    }, function(err, data, response) {
+                        if(err) {
+                            console.warn(err);
+                            callback(true);
+                            return ;
+                        }                         
+                        callback(false, data.html);
+                    }); 
                 }
-            });  	
-        }
+            );
+        });
+
+        async.parallel(asyncArray, function(err, results) {
+            if(err) { 
+                console.log(err); 
+                res.send(500,"Server Error"); return; 
+            }
+            console.log(results);
+            var sendthis = results.join("");
+            res.send(sendthis);
+        });
         
     }); 
-
     
     
 });
@@ -149,18 +164,18 @@ flock.events.on('client.slashCommand', function (event, callback) {
                             // }
                             // ,
                             "flockml": '<flockml>'+names_twit+'</flockml>'
-                        },
-                        "buttons": [{
-                            "name": "View",
-                            "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
-                            "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": "<action url>" },
-                            "id": "viewButton"
-                        }, {
-                            "name": "Help",
-                            "icon": "https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-help-circled-128.png",
-                            "action": { "type": "openWidget", "desktopType": "sidebar", "mobileType": "modal", "url": "<action url>" },
-                            "id": "helpButton"
-                        }]
+                        }
+                        // ,"buttons": [{
+                        //     "name": "View",
+                        //     "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
+                        //     "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": "<action url>" },
+                        //     "id": "viewButton"
+                        // }, {
+                        //     "name": "Help",
+                        //     "icon": "https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-help-circled-128.png",
+                        //     "action": { "type": "openWidget", "desktopType": "sidebar", "mobileType": "modal", "url": "<action url>" },
+                        //     "id": "helpButton"
+                        // }]
                     }
                 ]
             }, function (error, response) {
@@ -175,7 +190,7 @@ flock.events.on('client.slashCommand', function (event, callback) {
         
         
         callback(null, {
-            "text": "Setting a reminder for  milliseconds!"
+            "text": "Fetching tweets!"
         });
 
     } else {
@@ -205,60 +220,60 @@ flock.callMethod('roster.listContacts', "996f4684-30b6-4f48-8e64-5d60aa6c872f", 
 });
 
 
-flock.events.on('chat.receiveMessage', function(event, callback) {
-    var fromId = event.message.from;
-    var toId = event.message.to;  //bot identifier
-    var text = event.message.text;
-    console.log(text[0]);
-    if (text[0] != '#') {
-        //applly logic for sending text
-        flock.callMethod('chat.sendMessage', config.botToken, {
-            to: fromId,
-            text: "ya wait for a minute",
-            attachments: 
-            [
-                {
-                    "title":"attachment title",
-                    "description":"attachment description",
-                    "views": {
-                        "image": {
-                            "original": {
-                                "src": "https://lc-www-live-s.legocdn.com/r/www/r/catalogs/-/media/catalogs/characters/dc/mugshots/mugshot%202016/76061_1to1_mf_batman_336.png?l.r2=-798905063",
-                                "width": 400
-                            }
-                        }
-                        // ,
-                        // "html": { 
-                        //     "inline": "<html><head></head><body bgcolor='red'></body></html>", 
-                        //     "width": 400, 
-                        //     "height": 400 
-                        // }
-                        // ,
-                        // "flockml": "<flockml>Hello World</flockml>"
-                    },
-                    "buttons": [{
-                        "name": "View",
-                        "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
-                        "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": "<action url>" },
-                        "id": "viewButton"
-                    }, {
-                        "name": "Help",
-                        "icon": "https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-help-circled-128.png",
-                        "action": { "type": "openWidget", "desktopType": "sidebar", "mobileType": "modal", "url": "<action url>" },
-                        "id": "helpButton"
-                    }]
-                }
-            ]
-        }, function(error, response) {
-            if(error) {
-                console.log(error);
-            }
-        });
+// flock.events.on('chat.receiveMessage', function(event, callback) {
+//     var fromId = event.message.from;
+//     var toId = event.message.to;  //bot identifier
+//     var text = event.message.text;
+//     console.log(text[0]);
+//     if (text[0] != '#') {
+//         //applly logic for sending text
+//         flock.callMethod('chat.sendMessage', config.botToken, {
+//             to: fromId,
+//             text: "ya wait for a minute",
+//             attachments: 
+//             [
+//                 {
+//                     "title":"attachment title",
+//                     "description":"attachment description",
+//                     "views": {
+//                         "image": {
+//                             "original": {
+//                                 "src": "https://lc-www-live-s.legocdn.com/r/www/r/catalogs/-/media/catalogs/characters/dc/mugshots/mugshot%202016/76061_1to1_mf_batman_336.png?l.r2=-798905063",
+//                                 "width": 400
+//                             }
+//                         }
+//                         // ,
+//                         // "html": { 
+//                         //     "inline": "<html><head></head><body bgcolor='red'></body></html>", 
+//                         //     "width": 400, 
+//                         //     "height": 400 
+//                         // }
+//                         // ,
+//                         // "flockml": "<flockml>Hello World</flockml>"
+//                     },
+//                     "buttons": [{
+//                         "name": "View",
+//                         "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
+//                         "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": "<action url>" },
+//                         "id": "viewButton"
+//                     }, {
+//                         "name": "Help",
+//                         "icon": "https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-help-circled-128.png",
+//                         "action": { "type": "openWidget", "desktopType": "sidebar", "mobileType": "modal", "url": "<action url>" },
+//                         "id": "helpButton"
+//                     }]
+//                 }
+//             ]
+//         }, function(error, response) {
+//             if(error) {
+//                 console.log(error);
+//             }
+//         });
 
-    }
+//     }
 
-    callback(null, {});
-});
+//     callback(null, {});
+// });
 
 
 
