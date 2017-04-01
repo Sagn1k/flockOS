@@ -1,47 +1,47 @@
 <html>
     <head>
         <title>Grammar</title>
-
         <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
         <script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/1.0.2/Chart.min.js"></script>
     </head>
     <body>
-        <!--<input id = "parsebody" type="hidden" value="{{response}}">
+        <input id = "parsebody" type="hidden" value="{{commands}}">
         <script>
             var inputElement = document.getElementById('parsebody');
-            var response = JSON.parse(inputElement.value);
+            var commands = inputElement.value;
+            var commandArray = commands.split(',');
             inputElement.value = "";
-        </script>-->
-        <canvas id="Chart1" height="200" width- "300"></canvas>
+            for(var i=0; i<commandArray.length;i++) {
+                commandArray[i] = commandArray[i].trim();
+            }
+            var width = window.innerWidth;
+            var height = window.innerHeight;
+            var final_str="";
+            for(var i=0; i<commandArray.length;i++) {
+                if(i != commandArray.length-1) {
+                    for(var j =0; j<commandArray[i].length; j++) {
+                        if(commandArray[i][j] == ' ') {
+                            commandArray[i][j] = '+';
+                        }
+                    }
+                    final_str += commandArray[i] + ',';
+                } else {
+                    for(var j =0; j<commandArray[i].length; j++) {
+                        if(commandArray[i][j] == ' ') {
+                            commandArray[i][j] = '+';
+                        }
+                    }
+                    final_str += commandArray[i];
+                }
+            }
+            var url = "https://www.google.com/trends/fetchComponent?hl=en-US&q=" + final_str +"&cmpt=q&content=1&cid=TIMESERIES_GRAPH_0&export=5&w="+width+"&h="+height;
+        </script>
+        <iframe id="iframemap" scrolling="no" style="border:none;" width="100%" height="100%"></iframe>
         <script>
-            console.log(response);
-            lineChartData = {}; //declare an object
-            lineChartData.labels = []; //add 'labels' element to object (X axis)
-            lineChartData.datasets = []; //add 'datasets' array element to object
-
-            for (line = 0; line < 4; line++) {
-                y = [];
-                lineChartData.datasets.push({}); //create a new line dataset
-                dataset = lineChartData.datasets[line]
-                dataset.fillColor = "rgba(0,0,0,0)";
-                dataset.strokeColor = "rgba(200,200,200,1)";
-                dataset.data = []; //contains the 'Y; axis data
-
-                for (x = 0; x < 10; x++) {
-                    y.push(line + x); //push some data aka generate 4 distinct separate lines
-                    if (line === 0)
-                        lineChartData.labels.push(x); //adds x axis labels
-                } //for x
-
-                lineChartData.datasets[line].data = y; //send new line data to dataset
-            } //for line
-
-            ctx = document.getElementById("Chart1").getContext("2d");
-            myLineChart = new Chart(ctx).Line(lineChartData);
-
-
+            var iframeElem = document.getElementById('iframemap');
+            iframeElem.src=url;
         </script>
     </body>
 </html>

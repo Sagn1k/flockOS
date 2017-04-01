@@ -97,19 +97,28 @@ app.get('/trending', function(req, res) {
 
 app.get('/googletrends', function(req,res) {
     var text = req.query.text;
-    var commands = text.split(",");
-    // commands.forEach(function(command) {
-    //     console.log(command);
-    // });
+    var comm = text.split(",");
+    var commands = {};
+    var i=0;
+    var commstring = "";
+    comm.forEach(function(command) {
+        commands[i] = command;
+        i++;
+        commstring += command + ',';
+    });
+    var response = "";
     // console.log(commands);
-    googleTrends.interestOverTime({keyword: commands})
-    .then((response) => {
+    // googleTrends.interestOverTime({keyword: commands})
+    // .then((response) => {
     //   console.log('this is res', response);
-      res.render("charttrends", {'response' : response});
-    })
-    .catch((err) => {
-      console.log('got the error', err);
-    })
+    
+    commstring = commstring.slice(0,commstring.length-1);
+    console.log(commstring);
+      res.render("charttrends", {'response' : response, 'commands': commstring});
+    // })
+    // .catch((err) => {
+    //   console.log('got the error', err);
+    // })
 });
 
 app.get('/grammar', function(req, res) {
@@ -278,12 +287,36 @@ flock.events.on('client.slashCommand', function (event, callback) {
             "text": "Fetching tweets!"
         });
 
-    } else if (hint1 == "g") {
+    } else if (hint1 == "analyze") {
         
         // googleTrends.interestOverTime({keyword: ['a']})
         // .then((res) => {
         //   console.log('this is res', res);
           var url = config.baseUrl + '/googletrends?text='+encodeURI(commandText);
+          
+        //   var commandArray = commandText.split(',');
+        //     for(var i=0; i<commandArray.length;i++) {
+        //         commandArray[i] = commandArray[i].trim();
+        //     }
+        //     var final_str="";
+        //     for(var i=0; i<commandArray.length;i++) {
+        //         if(i != commandArray.length-1) {
+        //             for(var j =0; j<commandArray[i].length; j++) {
+        //                 if(commandArray[i][j] == ' ') {
+        //                     commandArray[i][j] = '+';
+        //                 }
+        //             }
+        //             final_str += commandArray[i] + ',';
+        //         } else {
+        //             for(var j =0; j<commandArray[i].length; j++) {
+        //                 if(commandArray[i][j] == ' ') {
+        //                     commandArray[i][j] = '+';
+        //                 }
+        //             }
+        //             final_str += commandArray[i];
+        //         }
+        //     }
+        //     console.log(final_str);
           flock.callMethod('chat.sendMessage', tokens[event.userId], {
                 to: chat,
                 text: "Trends"
@@ -293,23 +326,26 @@ flock.events.on('client.slashCommand', function (event, callback) {
                         "title":"Trends",
                         "description":"",
                         "views": {
-                            // "html": { 
-                            //     "inline": "<html><head></head><body></body></html>" 
-                            // }
+                            "html": { 
+                                "inline": '<html><head><title>Grammar</title><link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous"><script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script><script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/1.0.2/Chart.min.js"></script></head><body><input id = "parsebody" type="hidden" value="{{commands}}"><script>var inputElement = document.getElementById("parsebody");var commands = inputElement.value;var commandArray = "'+commandText+'".split(",");inputElement.value = "";for(var i=0; i<commandArray.length;i++) { commandArray[i] = commandArray[i].trim(); } var width = window.innerWidth;var height = window.innerHeight;var final_str=""; for(var i=0; i<commandArray.length;i++) { if(i != commandArray.length-1) { for(var j =0; j<commandArray[i].length; j++) {if(commandArray[i][j] == " ") { commandArray[i][j] = "+"; } } final_str += commandArray[i] + ","; } else { for(var j =0; j<commandArray[i].length; j++) { if(commandArray[i][j] == " ") { commandArray[i][j] = "+"; }} final_str += commandArray[i];}}var url = "https://www.google.com/trends/fetchComponent?hl=en-US&q=" + final_str +"&cmpt=q&content=1&cid=TIMESERIES_GRAPH_0&export=5&w="+width+"&h="+height;</script><iframe id="iframemap" scrolling="yes" style="border:none;" width="100%" height="100%"></iframe><script> var iframeElem = document.getElementById("iframemap");iframeElem.src=url; </script></body></html>',
+                                "height": "155"
+                            }
                             // // ,
-                            "flockml": '<flockml>'+'<action id="act2" type="openWidget" url="'+url+'" desktopType="modal" mobileType="modal">'+'View Graph'+'</action>'+'</flockml>'
+                            // "flockml": '<flockml>'+'<action id="act2" type="openWidget" url="'+url+'" desktopType="modal" mobileType="modal">'+'View Graph'+'</action>'+'</flockml>'
                         }
-                        // ,"buttons": [{
-                        //     "name": "View",
-                        //     "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
-                        //     "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": "<action url>" },
-                        //     "id": "viewButton"
-                        // }, {
+                        ,"buttons": [{
+                            "name": "View",
+                            "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
+                            "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": url },
+                            "id": "viewButton"
+                        }
+                        // , {
                         //     "name": "Help",
                         //     "icon": "https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-help-circled-128.png",
                         //     "action": { "type": "openWidget", "desktopType": "sidebar", "mobileType": "modal", "url": "<action url>" },
                         //     "id": "helpButton"
-                        // }]
+                        // }
+                        ]
                     }
                 ]
             }, function (error, response) {
@@ -327,7 +363,7 @@ flock.events.on('client.slashCommand', function (event, callback) {
 
 
         callback(null, {
-            "text": "Setting a reminder for " + time + " milliseconds!"
+            "text": "Fetching Graphs"
         });
 
     } else {
