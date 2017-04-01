@@ -13,11 +13,7 @@
                     <input type="text" name="text" class="form-control" id="text" placeholder="Enter your message"  value="{{text}}">
                 </div>
             </div>
-            
-            
-        
             <input id = "parsebody" type="hidden" value="{{body}}">
-            
             <div class="form-group"> 
                 <div class="row">
                     <div class="col-xs-2 col-xs-offset-1">
@@ -41,8 +37,7 @@
             var inner = "";
             console.log(bodyElem);
             for(var i=0;i < bodyElem.flaggedTokens.length; i++) {
-                 inner += '<p> <font color="RED">'+bodyElem.flaggedTokens[i].token +'</font> => <font color = "green">'+ bodyElem.flaggedTokens[i].suggestions[0].suggestion + '</font></p><br>';
-                
+                 inner += '<p> <font color="RED">'+bodyElem.flaggedTokens[i].token +'</font> => <font color = "green">'+ bodyElem.flaggedTokens[i].suggestions[0].suggestion + '</font></p><br>';  
             }
             document.getElementById('corrections').innerHTML = inner;
             if(inner != "") {

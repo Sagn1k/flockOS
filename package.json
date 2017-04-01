@@ -9,17 +9,12 @@
   "author": "Bhaskar Goyal",
   "license": "ISC",
   "dependencies": {
-    "ajax-request": "^1.2.1",
     "async": "^2.2.0",
     "body-parser": "^1.17.1",
-    "chart.js": "^2.5.0",
-    "consolidate": "^0.14.5",
     "express": "^4.15.2",
     "flockos": "0.0.6",
     "google-trends-api": "^4.1.0",
-    "postman-request": "^2.80.1-postman.1",
     "request": "^2.81.0",
-    "swig": "^1.4.2",
     "twit": "^2.2.5",
     "url": "^0.11.0"
   }
