@@ -84,6 +84,29 @@ app.get('/trending', function(req, res) {
 });
 
 
+app.get('/grammar', function(req, res) {
+
+    var params = {
+            // Request parameters
+            "text": textToCheck,
+            "mode": "Proof",
+        };
+
+    request('url', function(err, res, body) {});
+ 
+    request({
+    url: "https://api.cognitive.microsoft.com/bing/v5.0/spellcheck/?" + $.param(params),
+            beforeSend: function(xhrObj){
+                // Request headers
+                xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key","6c0e679d884f4d11b35174fbd9e007d1");
+            },
+            type: "GET",
+            // Request body
+            data: "{body}",
+    }, function(err, res, body) {
+  
+    });
+});
 
 // Read tokens from a local file, if possible.
 var tokens;
@@ -294,41 +317,6 @@ process.on('SIGTERM', process.exit);
 process.on('exit', function () {
     fs.writeFileSync('./tokens.json', JSON.stringify(tokens));
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // flock.events.on('client.slashCommand', function (event, callback) {
 //     // handle slash command event here
