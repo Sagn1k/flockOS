@@ -41,6 +41,8 @@ app.get('/', function(req, res) {
 app.get('/trending', function(req, res) {
     var url_parts = url.parse(req.url, true);
     var name = "";
+    var number = req.query.number;
+    console.log(number);
     
     if (req.query.name[0] == '%' && req.query.name[1] == '2' && req.query.name[2] == '3') {
         name = "#";
@@ -50,7 +52,7 @@ app.get('/trending', function(req, res) {
     }
     var params = { 
     q: name, 
-    count: 5 
+    count: number 
     }
     console.log(name);
     var htmltobesend="";
@@ -196,7 +198,7 @@ flock.events.on('client.slashCommand', function (event, callback) {
     textArray.splice(0, 1);
     var commandText = textArray.join(" ");
 
-    if(hint1 == "t") {
+    if(hint1 == "trendy") {
         T.get('trends/place', { 
             id: 1
         }, function (err, data, response) {
@@ -205,7 +207,12 @@ flock.events.on('client.slashCommand', function (event, callback) {
             // console.log(tweets[0].name);
             var names = [];
             var names_twit="";
-            for(var i=0;i<tweets.length; i++) {
+            if(textArray[0]) {
+                var lengthtext = textArray[0];
+            } else {
+                var lengthtext = 10;
+            }
+            for(var i=0;i<lengthtext; i++) {
                 if(i != 0) {
                     names_twit += "<br/>";
                 }
@@ -217,6 +224,12 @@ flock.events.on('client.slashCommand', function (event, callback) {
                     uri += tweets[i].name;
                 }
                 var url = encodeURI(uri);
+                if(textArray[1]){
+                    var mintextlength = textArray[1];
+                } else {
+                    var mintextlength = 5;
+                }
+                url += '&number=' + mintextlength;
                 console.log("URl : ",url);
 
                 names_twit += '<action id="act1" type="openWidget" url="'+url+'" desktopType="sidebar" mobileType="modal">'+tweets[i].name+'</action>'; 
@@ -229,7 +242,7 @@ flock.events.on('client.slashCommand', function (event, callback) {
                 [
                     {
                         "title":"Trending Tweets",
-                        "description":"Top 50 tweets",
+                        "description":"Top "+lengthtext+ " tweets",
                         "views": {
                             // "html": { 
                             //     "inline": "<html><head></head><body>"+names_twit+"</body></html>" 
@@ -284,7 +297,7 @@ flock.events.on('client.slashCommand', function (event, callback) {
                             //     "inline": "<html><head></head><body></body></html>" 
                             // }
                             // // ,
-                            "flockml": '<flockml>'+'<action id="act2" type="openWidget" url="'+url+'" desktopType="sidebar" mobileType="modal">'+'View Graph'+'</action>'+'</flockml>'
+                            "flockml": '<flockml>'+'<action id="act2" type="openWidget" url="'+url+'" desktopType="modal" mobileType="modal">'+'View Graph'+'</action>'+'</flockml>'
                         }
                         // ,"buttons": [{
                         //     "name": "View",
