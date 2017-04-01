@@ -1,12 +1,21 @@
 var flock = require('flockos');
 var config = require('./config.js');
+var config_twitter = require('./config-twitter.js');
 var express = require('express');
 var fs = require('fs');
+var Twit = require('twit');
+var url  = require('url');
+var request = require('request');
+var async = require('async');
+
 
 flock.appId = config.appId;
 flock.appSecret = config.appSecret;
 // flock.baseUrl = config.baseUrl;
 var app = express();
+
+var T = new Twit(config_twitter);
+
 
 
 
@@ -19,6 +28,62 @@ app.get('/home', function(req, res) {
 app.get('/', function(req, res) {
     res.send('Flock');
 });
+app.get('/trending', function(req, res) {
+    var url_parts = url.parse(req.url, true);
+    var name = "";
+    
+    if (req.query.name[0] == '%' && req.query.name[1] == '2' && req.query.name[2] == '3') {
+        name = "#";
+        name += req.query.name.slice(3);
+    } else {
+        name = req.query.name;
+    }
+    var params = { 
+    q: name, 
+    count: 5 
+    }
+    console.log(name);
+    var htmltobesend="";
+    T.get('search/tweets', params, function (err, data, response) {
+        var tweets = data.statuses;
+        // console.log(tweets);
+        var asyncArray =[];
+        tweets.forEach(function(tweet) {
+            asyncArray.push(
+                function(callback) {
+                    console.log(tweet);
+                    var urltobechecked = 'https://twitter.com/'+tweet.user.screen_name+'/status/'+ tweet.id_str;
+                    console.log(urltobechecked);
+                    T.get('statuses/oembed', {
+                        url: urltobechecked
+                    }, function(err, data, response) {
+                        if(err) {
+                            console.warn(err);
+                            callback(true);
+                            return ;
+                        }                         
+                        callback(false, data.html);
+                    }); 
+                }
+            );
+        });
+
+        async.parallel(asyncArray, function(err, results) {
+            if(err) { 
+                console.log(err); 
+                res.send(500,"Server Error"); return; 
+            }
+            console.log(results);
+            var sendthis = results.join("");
+            res.send(sendthis);
+        });
+        
+    }); 
+    
+    
+});
+
+
 
 // Read tokens from a local file, if possible.
 var tokens;
@@ -52,14 +117,67 @@ flock.events.on('client.slashCommand', function (event, callback) {
     var command = event.command;
     var text = event.text;
     var textArray = text.split(" ");
-    var time = Number(textArray[0]);
+    var hint1 = textArray[0];
     textArray[0] = "";
     textArray.splice(0, 1);
     var commandText = textArray.join(" ");
-    setTimeout(function() {
-        flock.callMethod('chat.sendMessage', tokens[event.userId], {
+
+    if(hint1 == "t") {
+        T.get('trends/place', { 
+            id: 1
+        }, function (err, data, response) {
+            console.log(err);
+            var tweets = data[0].trends;
+            // console.log(tweets[0].name);
+            var names = [];
+            var names_twit="";
+            for(var i=0;i<tweets.length; i++) {
+                if(i != 0) {
+                    names_twit += "<br/>";
+                }
+                var uri = config.baseUrl+"/trending?name=";
+                if((tweets[i].name)[0] == '#') {
+                    uri += '%23';
+                    uri += (tweets[i].name).slice(1);
+                } else {
+                    uri += tweets[i].name;
+                }
+                var url = encodeURI(uri);
+                console.log("URl : ",url);
+
+                names_twit += '<action id="act1" type="openWidget" url="'+url+'" desktopType="sidebar" mobileType="modal">'+tweets[i].name+'</action>'; 
+            }
+
+             
+``
+            flock.callMethod('chat.sendMessage', tokens[event.userId], {
                 to: chat,
-                text: commandText 
+                text: "Trending Tweets"
+                ,attachments: 
+                [
+                    {
+                        "title":"Trending Tweets",
+                        "description":"Top 50 tweets",
+                        "views": {
+                            // "html": { 
+                            //     "inline": "<html><head></head><body>"+names_twit+"</body></html>" 
+                            // }
+                            // ,
+                            "flockml": '<flockml>'+names_twit+'</flockml>'
+                        }
+                        // ,"buttons": [{
+                        //     "name": "View",
+                        //     "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
+                        //     "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": "<action url>" },
+                        //     "id": "viewButton"
+                        // }, {
+                        //     "name": "Help",
+                        //     "icon": "https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-help-circled-128.png",
+                        //     "action": { "type": "openWidget", "desktopType": "sidebar", "mobileType": "modal", "url": "<action url>" },
+                        //     "id": "helpButton"
+                        // }]
+                    }
+                ]
             }, function (error, response) {
                 if(!error) {
                     console.log(response);
@@ -67,71 +185,95 @@ flock.events.on('client.slashCommand', function (event, callback) {
                     console.log('error while sending chat sendMessage');
                 }
             });
-    }, time); 
-    callback(null, {
-        "text": "Setting a reminder for " + time + " milliseconds!"
-    });
+        }); 
+
+        
+        
+        callback(null, {
+            "text": "Fetching tweets!"
+        });
+
+    } else {
+        setTimeout(function() {
+            flock.callMethod('chat.sendMessage', tokens[event.userId], {
+                    to: chat,
+                    text: commandText 
+                }, function (error, response) {
+                    if(!error) {
+                        console.log(response);
+                    } else {
+                        console.log('error while sending chat sendMessage');
+                    }
+                });
+        }, time); 
+        callback(null, {
+            "text": "Setting a reminder for " + time + " milliseconds!"
+        });
+    }
+
+
+    
+    
 });
 
 flock.callMethod('roster.listContacts', "996f4684-30b6-4f48-8e64-5d60aa6c872f", {
 });
 
 
-flock.events.on('chat.receiveMessage', function(event, callback) {
-    var fromId = event.message.from;
-    var toId = event.message.to;  //bot identifier
-    var text = event.message.text;
+// flock.events.on('chat.receiveMessage', function(event, callback) {
+//     var fromId = event.message.from;
+//     var toId = event.message.to;  //bot identifier
+//     var text = event.message.text;
+//     console.log(text[0]);
+//     if (text[0] != '#') {
+//         //applly logic for sending text
+//         flock.callMethod('chat.sendMessage', config.botToken, {
+//             to: fromId,
+//             text: "ya wait for a minute",
+//             attachments: 
+//             [
+//                 {
+//                     "title":"attachment title",
+//                     "description":"attachment description",
+//                     "views": {
+//                         "image": {
+//                             "original": {
+//                                 "src": "https://lc-www-live-s.legocdn.com/r/www/r/catalogs/-/media/catalogs/characters/dc/mugshots/mugshot%202016/76061_1to1_mf_batman_336.png?l.r2=-798905063",
+//                                 "width": 400
+//                             }
+//                         }
+//                         // ,
+//                         // "html": { 
+//                         //     "inline": "<html><head></head><body bgcolor='red'></body></html>", 
+//                         //     "width": 400, 
+//                         //     "height": 400 
+//                         // }
+//                         // ,
+//                         // "flockml": "<flockml>Hello World</flockml>"
+//                     },
+//                     "buttons": [{
+//                         "name": "View",
+//                         "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
+//                         "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": "<action url>" },
+//                         "id": "viewButton"
+//                     }, {
+//                         "name": "Help",
+//                         "icon": "https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-help-circled-128.png",
+//                         "action": { "type": "openWidget", "desktopType": "sidebar", "mobileType": "modal", "url": "<action url>" },
+//                         "id": "helpButton"
+//                     }]
+//                 }
+//             ]
+//         }, function(error, response) {
+//             if(error) {
+//                 console.log(error);
+//             }
+//         });
 
-    //applly logic for sending text
+//     }
 
-
-
-
-
-    flock.callMethod('chat.sendMessage', config.botToken, {
-        to: fromId,
-        text: "ya wait for a minute",
-        attachments: 
-        [
-            {
-                "title":"attachment title",
-                "description":"attachment description",
-                "views": {
-                    "image": {
-                        "original": {
-                            "src": "https://lc-www-live-s.legocdn.com/r/www/r/catalogs/-/media/catalogs/characters/dc/mugshots/mugshot%202016/76061_1to1_mf_batman_336.png?l.r2=-798905063",
-                            "width": 400
-                        }
-                    }
-                    // ,
-                    // "html": { 
-                    //     "inline": "<html><head></head><body bgcolor='red'></body></html>", 
-                    //     "width": 400, 
-                    //     "height": 400 
-                    // }
-                    // ,
-                    // "flockml": "<flockml>Hello World</flockml>"
-                },
-                "buttons": [{
-                    "name": "View",
-                    "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
-                    "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": "<action url>" },
-                    "id": "viewButton"
-                }, {
-                    "name": "Help",
-                    "icon": "https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-help-circled-128.png",
-                    "action": { "type": "openWidget", "desktopType": "sidebar", "mobileType": "modal", "url": "<action url>" },
-                    "id": "helpButton"
-                }]
-            }
-        ]
-    }, function(error, response) {
-        if(error) {
-            console.log(error);
-        }
-    });
-    callback(null, {});
-});
+//     callback(null, {});
+// });
 
 
 
