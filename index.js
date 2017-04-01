@@ -16,6 +16,9 @@ app.post('/events', flock.events.listener);
 app.get('/home', function(req, res) {
     res.send('Thank You for registering with us!');
 });
+app.get('/', function(req, res) {
+    res.send('Flock');
+});
 
 // Read tokens from a local file, if possible.
 var tokens;
@@ -37,6 +40,8 @@ flock.events.on('app.uninstall', function (event, callback) {
     delete tokens[event.userId];
     callback(null, {});
 });
+
+
 
 flock.events.on('client.slashCommand', function (event, callback) {
     var name = event.name;
@@ -68,12 +73,20 @@ flock.events.on('client.slashCommand', function (event, callback) {
     });
 });
 
+flock.callMethod('roster.listContacts', "996f4684-30b6-4f48-8e64-5d60aa6c872f", {
+});
+
 
 flock.events.on('chat.receiveMessage', function(event, callback) {
     var fromId = event.message.from;
     var toId = event.message.to;  //bot identifier
     var text = event.message.text;
+
     //applly logic for sending text
+
+
+
+
 
     flock.callMethod('chat.sendMessage', config.botToken, {
         to: fromId,
@@ -84,12 +97,12 @@ flock.events.on('chat.receiveMessage', function(event, callback) {
                 "title":"attachment title",
                 "description":"attachment description",
                 "views": {
-                    // "image": {
-                    //     "original": {
-                    //         "src": "https://lc-www-live-s.legocdn.com/r/www/r/catalogs/-/media/catalogs/characters/dc/mugshots/mugshot%202016/76061_1to1_mf_batman_336.png?l.r2=-798905063",
-                    //         "width": 400
-                    //     }
-                    // }
+                    "image": {
+                        "original": {
+                            "src": "https://lc-www-live-s.legocdn.com/r/www/r/catalogs/-/media/catalogs/characters/dc/mugshots/mugshot%202016/76061_1to1_mf_batman_336.png?l.r2=-798905063",
+                            "width": 400
+                        }
+                    }
                     // ,
                     // "html": { 
                     //     "inline": "<html><head></head><body bgcolor='red'></body></html>", 
@@ -97,7 +110,7 @@ flock.events.on('chat.receiveMessage', function(event, callback) {
                     //     "height": 400 
                     // }
                     // ,
-                    "flockml": "<flockml>Hello World</flockml>"
+                    // "flockml": "<flockml>Hello World</flockml>"
                 },
                 "buttons": [{
                     "name": "View",
@@ -130,7 +143,7 @@ flock.events.on('chat.receiveMessage', function(event, callback) {
 // Start the listener after reading the port from config
 var port = config.port || 3000;
 app.listen(port, function () {
-    console.log('Listening on port: ' + port);
+    console.log('Listenineg on port: ' + port);
 });
 
 // exit handling -- save tokens in token.js before leaving
