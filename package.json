@@ -9,7 +9,11 @@
   "author": "Bhaskar Goyal",
   "license": "ISC",
   "dependencies": {
+    "async": "^2.2.0",
     "express": "^4.15.2",
-    "flockos": "0.0.6"
+    "flockos": "0.0.6",
+    "request": "^2.81.0",
+    "twit": "^2.2.5",
+    "url": "^0.11.0"
   }
 }
