@@ -93,6 +93,9 @@ app.get('/trending', function(req, res) {
     
 });
 
+app.get('googletrends', function(req,res) {
+    
+});
 
 app.get('/grammar', function(req, res) {
 
@@ -180,7 +183,7 @@ flock.events.on('client.slashCommand', function (event, callback) {
     var hint1 = textArray[0];
     textArray[0] = "";
     textArray.splice(0, 1);
-    var commandText = textArray.join(" ");
+    var commandText = textArray.join("");
 
     if(hint1 == "t") {
         T.get('trends/place', { 
@@ -253,9 +256,45 @@ flock.events.on('client.slashCommand', function (event, callback) {
 
     } else if (hint1 == "g") {
         
-        googleTrends.interestOverTime({keyword: ['Valentines Day', 'Christmas Day']})
+        googleTrends.interestOverTime({keyword: textArray})
         .then((res) => {
           console.log('this is res', res);
+          var url = config.baseUrl + '/googletrends?text=commandText';
+          flock.callMethod('chat.sendMessage', tokens[event.userId], {
+                to: chat,
+                text: "Trends"
+                ,attachments: 
+                [
+                    {
+                        "title":"Trends",
+                        "description":"",
+                        "views": {
+                            // "html": { 
+                            //     "inline": "<html><head></head><body></body></html>" 
+                            // }
+                            // // ,
+                            "flockml": '<flockml>'+'<action id="act2" type="openWidget" url="'+url+'" desktopType="sidebar" mobileType="modal">'+'View Graph'+'</action>'+'</flockml>'
+                        }
+                        // ,"buttons": [{
+                        //     "name": "View",
+                        //     "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
+                        //     "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": "<action url>" },
+                        //     "id": "viewButton"
+                        // }, {
+                        //     "name": "Help",
+                        //     "icon": "https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-help-circled-128.png",
+                        //     "action": { "type": "openWidget", "desktopType": "sidebar", "mobileType": "modal", "url": "<action url>" },
+                        //     "id": "helpButton"
+                        // }]
+                    }
+                ]
+            }, function (error, response) {
+                if(!error) {
+                    console.log(response);
+                } else {
+                    console.log('error while sending chat sendMessage');
+                }
+            });
         })
         .catch((err) => {
           console.log('got the error', err);
