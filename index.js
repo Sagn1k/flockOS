@@ -7,6 +7,8 @@ var Twit = require('twit');
 var url  = require('url');
 var request = require('request');
 var async = require('async');
+const googleTrends = require('google-trends-api');
+var util = require('util');
 
 
 flock.appId = config.appId;
@@ -171,8 +173,6 @@ flock.events.on('client.slashCommand', function (event, callback) {
                 names_twit += '<action id="act1" type="openWidget" url="'+url+'" desktopType="sidebar" mobileType="modal">'+tweets[i].name+'</action>'; 
             }
 
-             
-``
             flock.callMethod('chat.sendMessage', tokens[event.userId], {
                 to: chat,
                 text: "Trending Tweets"
@@ -216,6 +216,22 @@ flock.events.on('client.slashCommand', function (event, callback) {
             "text": "Fetching tweets!"
         });
 
+    } else if (hint1 == "g") {
+        
+        googleTrends.interestOverTime({keyword: ['Valentines Day', 'Christmas Day']})
+        .then((res) => {
+          console.log('this is res', res);
+        })
+        .catch((err) => {
+          console.log('got the error', err);
+        })
+
+
+
+        callback(null, {
+            "text": "Setting a reminder for " + time + " milliseconds!"
+        });
+
     } else {
         setTimeout(function() {
             flock.callMethod('chat.sendMessage', tokens[event.userId], {
@@ -237,9 +253,6 @@ flock.events.on('client.slashCommand', function (event, callback) {
 
     
     
-});
-
-flock.callMethod('roster.listContacts', "996f4684-30b6-4f48-8e64-5d60aa6c872f", {
 });
 
 
@@ -332,4 +345,90 @@ process.on('exit', function () {
 //     if (!error) {
 //         console.log(response);
 //     }
+// });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/******************** Interest over time **************************/
+
+// googleTrends.interestOverTime({keyword: 'Valentines Day'})
+// .then((res) => {
+//   console.log('this is res', res);
+// })
+// .catch((err) => {
+//   console.log('got the error', err);
+//   console.log('error message', err.message);
+//   console.log('request body',  err.requestBody);
+// });
+
+// googleTrends.interestOverTime({keyword: 'Valentines Day', startTime: new Date(Date.now() - (4 * 60 * 60 * 1000))}, function(err, results) {
+//   if (err) console.log('oh no error!', err);
+//   else console.log(results);
+// });
+
+
+/******* Interest over time - Comparing multiple keywords *********/
+// googleTrends.interestOverTime({keyword: ['Valentines Day', 'Christmas Day']})
+// .then((res) => {
+//   console.log('this is res', res);
+// })
+// .catch((err) => {
+//   console.log('got the error', err);
+// })
+
+
+/******************** Interest by region **************************/
+
+
+// googleTrends.interestByRegion({keyword: 'Donald Trump', startTime: new Date('2017-02-01'), endTime: new Date('2017-02-06'), resolution: 'CITY'})
+// .then((res) => {
+//   console.log(res);
+// })
+// .catch((err) => {
+//   console.log(err);
+// })
+
+// googleTrends.interestByRegion({keyword: 'Donald Trump', startTime: new Date('2017-02-01'), endTime: new Date('2017-02-06'), geo: 'US-CA'})
+// .then((res) => {
+//   console.log(res);
+// })
+// .catch((err) => {
+//   console.log(err);
+// })
+
+
+/******************** Related queries **************************/
+
+// googleTrends.relatedQueries({keyword: 'Westminster Dog Show'})
+// .then((res) => {
+//   console.log(res);
+// })
+// .catch((err) => {
+//   console.log(err);
+// })
+
+/******************** Related topics **************************/
+
+// googleTrends.relatedTopics({keyword: 'Chipotle', startTime: new Date('2015-01-01'), endTime: new Date('2017-02-10')})
+// .then((res) => {
+//   console.log(res);
+// })
+// .catch((err) => {
+//   console.log(err);
 // });
