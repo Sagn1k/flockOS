@@ -12,15 +12,12 @@ var cons = require('consolidate');
 var path = require('path');
 var bodyParser = require('body-parser');
 var request = require('request');
-// var request = require('postman-request');
 
 
 
 flock.appId = config.appId;
 flock.appSecret = config.appSecret;
-// flock.baseUrl = config.baseUrl;
 var app = express();
-
 var T = new Twit(config_twitter);
 
 
@@ -29,7 +26,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.engine('html', cons.swig)
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'html');
-// Listen for events on /events, and verify event tokens using the token verifier.
 app.use(flock.events.tokenVerifier);
 app.post('/events', flock.events.listener);
 app.get('/home', function(req, res) {
@@ -41,7 +37,8 @@ app.get('/', function(req, res) {
 app.get('/trending', function(req, res) {
     var url_parts = url.parse(req.url, true);
     var name = "";
-    
+    var number = req.query.number;
+    console.log(number);
     if (req.query.name[0] == '%' && req.query.name[1] == '2' && req.query.name[2] == '3') {
         name = "#";
         name += req.query.name.slice(3);
@@ -50,13 +47,12 @@ app.get('/trending', function(req, res) {
     }
     var params = { 
     q: name, 
-    count: 5 
+    count: number 
     }
     console.log(name);
     var htmltobesend="";
     T.get('search/tweets', params, function (err, data, response) {
         var tweets = data.statuses;
-        // console.log(tweets);
         var asyncArray =[];
         tweets.forEach(function(tweet) {
             asyncArray.push(
@@ -77,7 +73,6 @@ app.get('/trending', function(req, res) {
                 }
             );
         });
-
         async.parallel(asyncArray, function(err, results) {
             if(err) { 
                 console.log(err); 
@@ -87,18 +82,27 @@ app.get('/trending', function(req, res) {
             var sendthis = results.join("");
             res.send(sendthis);
         });
-        
     }); 
-    
-    
 });
 
-app.get('googletrends', function(req,res) {
-    
+app.get('/googletrends', function(req,res) {
+    var text = req.query.text;
+    var comm = text.split(",");
+    var commands = {};
+    var i=0;
+    var commstring = "";
+    comm.forEach(function(command) {
+        commands[i] = command;
+        i++;
+        commstring += command + ',';
+    });
+    var response = "";
+    commstring = commstring.slice(0,commstring.length-1);
+    console.log(commstring);
+    res.render("charttrends", {'response' : response, 'commands': commstring});
 });
 
 app.get('/grammar', function(req, res) {
-
     var text = req.query.text;
     if(text != undefined || text != null) {
          var options = { 
@@ -109,7 +113,6 @@ app.get('/grammar', function(req, res) {
                 'ocp-apim-subscription-key': '6c0e679d884f4d11b35174fbd9e007d1' 
             } 
         };
-
         request(options, function (error, response, body) {
             if (error) throw new Error(error);
             console.log(body);
@@ -119,33 +122,6 @@ app.get('/grammar', function(req, res) {
     } else {
         res.render("grammar", {});
     }
-    
-    
-
-
-    // var params = {
-    //         // Request parameters
-    //         "text": textToCheck,
-    //         "mode": "Proof",
-    //     };
-
-    // request('url', function(err, res, body) {});
- 
-    // request({
-    // url: "https://api.cognitive.microsoft.com/bing/v5.0/spellcheck/?" + $.param(params),
-    //         beforeSend: function(xhrObj){
-    //             // Request headers
-    //             xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key","6c0e679d884f4d11b35174fbd9e007d1");
-    //         },
-    //         type: "GET",
-    //         // Request body
-    //         data: "{body}",
-    // }, function(err, res, body) {
-  
-    // });
-});
-
-app.post('/grammar', function(req, res) {
 });
 
 // Read tokens from a local file, if possible.
@@ -170,7 +146,6 @@ flock.events.on('app.uninstall', function (event, callback) {
 });
 
 
-
 flock.events.on('client.slashCommand', function (event, callback) {
     var name = event.name;
     var userId = event.userId;
@@ -183,9 +158,9 @@ flock.events.on('client.slashCommand', function (event, callback) {
     var hint1 = textArray[0];
     textArray[0] = "";
     textArray.splice(0, 1);
-    var commandText = textArray.join("");
+    var commandText = textArray.join(" ");
 
-    if(hint1 == "t") {
+    if(hint1 == "trendy") {
         T.get('trends/place', { 
             id: 1
         }, function (err, data, response) {
@@ -194,7 +169,12 @@ flock.events.on('client.slashCommand', function (event, callback) {
             // console.log(tweets[0].name);
             var names = [];
             var names_twit="";
-            for(var i=0;i<tweets.length; i++) {
+            if(textArray[0]) {
+                var lengthtext = textArray[0];
+            } else {
+                var lengthtext = 10;
+            }
+            for(var i=0;i<lengthtext; i++) {
                 if(i != 0) {
                     names_twit += "<br/>";
                 }
@@ -206,6 +186,12 @@ flock.events.on('client.slashCommand', function (event, callback) {
                     uri += tweets[i].name;
                 }
                 var url = encodeURI(uri);
+                if(textArray[1]){
+                    var mintextlength = textArray[1];
+                } else {
+                    var mintextlength = 5;
+                }
+                url += '&number=' + mintextlength;
                 console.log("URl : ",url);
 
                 names_twit += '<action id="act1" type="openWidget" url="'+url+'" desktopType="sidebar" mobileType="modal">'+tweets[i].name+'</action>'; 
@@ -218,7 +204,7 @@ flock.events.on('client.slashCommand', function (event, callback) {
                 [
                     {
                         "title":"Trending Tweets",
-                        "description":"Top 50 tweets",
+                        "description":"Top "+lengthtext+ " tweets",
                         "views": {
                             // "html": { 
                             //     "inline": "<html><head></head><body>"+names_twit+"</body></html>" 
@@ -254,12 +240,8 @@ flock.events.on('client.slashCommand', function (event, callback) {
             "text": "Fetching tweets!"
         });
 
-    } else if (hint1 == "g") {
-        
-        googleTrends.interestOverTime({keyword: textArray})
-        .then((res) => {
-          console.log('this is res', res);
-          var url = config.baseUrl + '/googletrends?text=commandText';
+    } else if (hint1 == "analyze") {
+          var url = config.baseUrl + '/googletrends?text='+encodeURI(commandText);
           flock.callMethod('chat.sendMessage', tokens[event.userId], {
                 to: chat,
                 text: "Trends"
@@ -269,23 +251,18 @@ flock.events.on('client.slashCommand', function (event, callback) {
                         "title":"Trends",
                         "description":"",
                         "views": {
-                            // "html": { 
-                            //     "inline": "<html><head></head><body></body></html>" 
-                            // }
-                            // // ,
-                            "flockml": '<flockml>'+'<action id="act2" type="openWidget" url="'+url+'" desktopType="sidebar" mobileType="modal">'+'View Graph'+'</action>'+'</flockml>'
+                            "html": { 
+                                "inline": '<html><head><title>Grammar</title><link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous"><script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script><script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/1.0.2/Chart.min.js"></script></head><body><input id = "parsebody" type="hidden" value="{{commands}}"><script>var inputElement = document.getElementById("parsebody");var commands = inputElement.value;var commandArray = "'+commandText+'".split(",");inputElement.value = "";for(var i=0; i<commandArray.length;i++) { commandArray[i] = commandArray[i].trim(); } var width = window.innerWidth;var height = window.innerHeight;var final_str=""; for(var i=0; i<commandArray.length;i++) { if(i != commandArray.length-1) { for(var j =0; j<commandArray[i].length; j++) {if(commandArray[i][j] == " ") { commandArray[i][j] = "+"; } } final_str += commandArray[i] + ","; } else { for(var j =0; j<commandArray[i].length; j++) { if(commandArray[i][j] == " ") { commandArray[i][j] = "+"; }} final_str += commandArray[i];}}var url = "https://www.google.com/trends/fetchComponent?hl=en-US&q=" + final_str +"&cmpt=q&content=1&cid=TIMESERIES_GRAPH_0&export=5&w="+width+"&h="+height;</script><iframe id="iframemap" scrolling="yes" style="border:none;" width="100%" height="100%"></iframe><script> var iframeElem = document.getElementById("iframemap");iframeElem.src=url; </script></body></html>',
+                                "height": "155"
+                            }
                         }
-                        // ,"buttons": [{
-                        //     "name": "View",
-                        //     "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
-                        //     "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": "<action url>" },
-                        //     "id": "viewButton"
-                        // }, {
-                        //     "name": "Help",
-                        //     "icon": "https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-help-circled-128.png",
-                        //     "action": { "type": "openWidget", "desktopType": "sidebar", "mobileType": "modal", "url": "<action url>" },
-                        //     "id": "helpButton"
-                        // }]
+                        ,"buttons": [{
+                            "name": "View",
+                            "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
+                            "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": url },
+                            "id": "viewButton"
+                        }
+                        ]
                     }
                 ]
             }, function (error, response) {
@@ -295,15 +272,8 @@ flock.events.on('client.slashCommand', function (event, callback) {
                     console.log('error while sending chat sendMessage');
                 }
             });
-        })
-        .catch((err) => {
-          console.log('got the error', err);
-        })
-
-
-
         callback(null, {
-            "text": "Setting a reminder for " + time + " milliseconds!"
+            "text": "Fetching Graphs"
         });
 
     } else {
@@ -323,74 +293,7 @@ flock.events.on('client.slashCommand', function (event, callback) {
             "text": "Setting a reminder for " + time + " milliseconds!"
         });
     }
-
-
-    
-    
 });
-
-
-// flock.events.on('chat.receiveMessage', function(event, callback) {
-//     var fromId = event.message.from;
-//     var toId = event.message.to;  //bot identifier
-//     var text = event.message.text;
-//     console.log(text[0]);
-//     if (text[0] != '#') {
-//         //applly logic for sending text
-//         flock.callMethod('chat.sendMessage', config.botToken, {
-//             to: fromId,
-//             text: "ya wait for a minute",
-//             attachments: 
-//             [
-//                 {
-//                     "title":"attachment title",
-//                     "description":"attachment description",
-//                     "views": {
-//                         "image": {
-//                             "original": {
-//                                 "src": "https://lc-www-live-s.legocdn.com/r/www/r/catalogs/-/media/catalogs/characters/dc/mugshots/mugshot%202016/76061_1to1_mf_batman_336.png?l.r2=-798905063",
-//                                 "width": 400
-//                             }
-//                         }
-//                         // ,
-//                         // "html": { 
-//                         //     "inline": "<html><head></head><body bgcolor='red'></body></html>", 
-//                         //     "width": 400, 
-//                         //     "height": 400 
-//                         // }
-//                         // ,
-//                         // "flockml": "<flockml>Hello World</flockml>"
-//                     },
-//                     "buttons": [{
-//                         "name": "View",
-//                         "icon": "https://cdn3.iconfinder.com/data/icons/faticons/32/view-01-128.png",
-//                         "action": { "type": "openWidget", "desktopType": "modal", "mobileType": "modal", "url": "<action url>" },
-//                         "id": "viewButton"
-//                     }, {
-//                         "name": "Help",
-//                         "icon": "https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-help-circled-128.png",
-//                         "action": { "type": "openWidget", "desktopType": "sidebar", "mobileType": "modal", "url": "<action url>" },
-//                         "id": "helpButton"
-//                     }]
-//                 }
-//             ]
-//         }, function(error, response) {
-//             if(error) {
-//                 console.log(error);
-//             }
-//         });
-
-//     }
-
-//     callback(null, {});
-// });
-
-
-
-
-
-
-
 
 // Start the listener after reading the port from config
 var port = config.port || 3000;
@@ -404,6 +307,12 @@ process.on('SIGTERM', process.exit);
 process.on('exit', function () {
     fs.writeFileSync('./tokens.json', JSON.stringify(tokens));
 });
+
+
+
+
+
+// Flock api call
 
 // flock.events.on('client.slashCommand', function (event, callback) {
 //     // handle slash command event here
@@ -420,24 +329,6 @@ process.on('exit', function () {
 //         console.log(response);
 //     }
 // });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /******************** Interest over time **************************/
 
